@@ -243,6 +243,7 @@ func _build_codex_panel() -> void:
 		name_rtl.bbcode_enabled = true
 		name_rtl.text = name_text
 		name_rtl.fit_content = true
+		name_rtl.autowrap_mode = TextServer.AUTOWRAP_OFF
 		name_rtl.add_theme_font_size_override("normal_font_size", 14)
 		info_vbox.add_child(name_rtl)
 
@@ -293,6 +294,9 @@ func _spawn_creature(instance_id: String, species_id: String) -> void:
 	var rtl = RichTextLabel.new()
 	rtl.bbcode_enabled = true
 	rtl.fit_content = true
+	rtl.autowrap_mode = TextServer.AUTOWRAP_OFF
+	rtl.scroll_active = false
+	rtl.custom_minimum_size = Vector2(160, 0)
 	rtl.add_theme_font_size_override("normal_font_size", data.font_size)
 
 	var color_hex = _color_to_hex(data.main_color)
@@ -303,6 +307,7 @@ func _spawn_creature(instance_id: String, species_id: String) -> void:
 			" [color=#FFFFFF]丨[/color][color=#%s]%s[/color]" % [_color_to_hex(data.main_color), gs]
 		)
 	rtl.text = name_text
+	print(">>> [DEBUG] spawned ", data.get("name_cn", "?"), " rtl.size after text set=", rtl.size)
 
 	# 初始位置 (use deferred to ensure tank_rect.size is available)
 	_place_creature.call_deferred(rtl, data)
