@@ -8,6 +8,8 @@ const C_BAR_TEXT = Color8(40, 80, 100)
 const C_NAV_ACTIVE = Color8(40, 80, 100)
 const C_NAV_INACTIVE = Color8(150, 150, 150)
 const C_BTN_ADOPT = Color8(76, 175, 80)
+const ANEMONE_SWAY_RADIUS := 4.0
+const ANEMONE_SWAY_SPEED := 10.0
 
 var tank_rect: Control
 var codex_panel: PanelContainer
@@ -17,6 +19,8 @@ var creature_nodes: Dictionary = {}  # instance_id → Control
 
 func _ready() -> void:
 	SaveManager.load_game()
+	get_tree().get_root().set_transparent_background(true)
+	_position_overlay_window()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_build_top_bar()
 	_build_nav_bar()
@@ -45,6 +49,7 @@ func _on_tank_resized(sand: Polygon2D) -> void:
 func _process(_delta: float) -> void:
 	if time_label:
 		time_label.text = Time.get_datetime_string_from_system()
+	_update_passthrough_region()
 	_animate_fish(_delta)
 
 
@@ -97,8 +102,8 @@ func _build_top_bar() -> void:
 
 func _build_nav_bar() -> void:
 	var bar = ColorRect.new()
-	bar.color = C_BAR_BG
-	bar.custom_minimum_size = Vector2(0, 36)
+	bar.color = Color(C_BAR_BG, 0.3)
+	bar.custom_minimum_size = Vector2(0, 28)
 	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	bar.position = Vector2(0, 48)
 	add_child(bar)
@@ -127,13 +132,13 @@ func _build_nav_bar() -> void:
 		var btn = Button.new()
 		btn.text = item.text
 		btn.flat = true
-		btn.add_theme_font_size_override("font_size", 14)
+		btn.add_theme_font_size_override("font_size", 12)
 		if item.active:
-			btn.add_theme_color_override("font_color", C_NAV_ACTIVE)
+			btn.add_theme_color_override("font_color", Color8(60, 110, 140))
 			btn.pressed.connect(_on_codex_tab_clicked)
 		else:
-			btn.add_theme_color_override("font_color", C_NAV_INACTIVE)
-		btn.custom_minimum_size = Vector2(60, 30)
+			btn.add_theme_color_override("font_color", Color8(150, 150, 150, 160))
+		btn.custom_minimum_size = Vector2(48, 24)
 		hbox.add_child(btn)
 
 	var spacer_r = Control.new()
@@ -297,8 +302,12 @@ func _place_creature(rtl: RichTextLabel, data: Dictionary) -> void:
 	var sand_y = tank_h - 60
 
 	if data.type == "anemone":
-		rtl.position = Vector2(cx - 60, sand_y - 80)
+		var anchor := Vector2(cx - 60, sand_y - 80)
+		rtl.position = anchor
 		rtl.set_meta("fixed", true)
+		rtl.set_meta("anchor_pos", anchor)
+		rtl.set_meta("target_pos", anchor)
+		rtl.set_meta("speed", ANEMONE_SWAY_SPEED)
 	else:
 		rtl.position = Vector2(randf_range(60, tank_w - 100), randf_range(100, sand_y - 60))
 		rtl.set_meta("fixed", false)
@@ -310,20 +319,31 @@ func _animate_fish(delta: float) -> void:
 	for node in creature_nodes.values():
 		if not is_instance_valid(node):
 			continue
-		if node.get_meta("fixed", false):
-			continue
 		var target: Vector2 = node.get_meta("target_pos", node.position)
 		var speed: float = node.get_meta("speed", 30.0)
 		var dist = node.position.distance_to(target)
-		if dist < 4.0:
-			var tank_w = tank_rect.size.x
-			var tank_h = tank_rect.size.y
-			var sand_y = tank_h - 60
-			target = Vector2(randf_range(40, tank_w - 80), randf_range(80, sand_y - 40))
-			node.set_meta("target_pos", target)
-			node.set_meta("speed", randf_range(20.0, 50.0))
+		if node.get_meta("fixed", false):
+			# 海葵：基于锚点小范围摆动
+			if dist < 2.0:
+				var anchor: Vector2 = node.get_meta("anchor_pos", node.position)
+				target = Vector2(
+					anchor.x + randf_range(-ANEMONE_SWAY_RADIUS, ANEMONE_SWAY_RADIUS),
+					anchor.y + randf_range(-ANEMONE_SWAY_RADIUS * 0.7, ANEMONE_SWAY_RADIUS * 0.7)
+				)
+				node.set_meta("target_pos", target)
+			else:
+				node.position = node.position.move_toward(target, speed * delta)
 		else:
-			node.position = node.position.move_toward(target, speed * delta)
+			# 鱼：满屏游动
+			if dist < 4.0:
+				var tank_w = tank_rect.size.x
+				var tank_h = tank_rect.size.y
+				var sand_y = tank_h - 60
+				target = Vector2(randf_range(40, tank_w - 80), randf_range(80, sand_y - 40))
+				node.set_meta("target_pos", target)
+				node.set_meta("speed", randf_range(20.0, 50.0))
+			else:
+				node.position = node.position.move_toward(target, speed * delta)
 
 
 func _color_to_hex(c: Color) -> String:
@@ -331,6 +351,36 @@ func _color_to_hex(c: Color) -> String:
 		"%02X%02X%02X"
 		% [clampi(int(c.r8), 0, 255), clampi(int(c.g8), 0, 255), clampi(int(c.b8), 0, 255)]
 	)
+
+
+func _position_overlay_window() -> void:
+	var screen_id := DisplayServer.window_get_current_screen()
+	var screen_size := DisplayServer.screen_get_size(screen_id)
+	var rect := OverlayLayout.calculate_overlay_rect(screen_size)
+	var window := get_window()
+	window.borderless = true
+	window.always_on_top = true
+	window.size = Vector2i(rect.size)
+	window.position = Vector2i(rect.position)
+
+
+func _update_passthrough_region() -> void:
+	# 信息栏+导航栏所在的节点（约 0-84px 高度区域）作为唯一可交互控制条
+	var control_rect := Rect2(Vector2(0, 0), Vector2(get_viewport_rect().size.x, 84))
+	var polygon := PackedVector2Array(
+		[
+			control_rect.position,
+			Vector2(control_rect.end.x, control_rect.position.y),
+			control_rect.end,
+			Vector2(control_rect.position.x, control_rect.end.y),
+		]
+	)
+	DisplayServer.window_set_mouse_passthrough(polygon)
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_tree().quit()
 
 
 # ── 帮助函数 ────────────────────────────────────────────────────
