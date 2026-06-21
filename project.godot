@@ -25,12 +25,12 @@ SaveManager="*res://scripts/SaveManager.gd"
 window/size/resizable=false
 window/size/borderless=true
 window/size/always_on_top=true
-window/size/transparent=false
-window/per_pixel_transparency/allowed=false
+window/size/transparent=true
+window/per_pixel_transparency/allowed=true
 window/subwindows/embedded_subwindows=false
 
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
-viewport/transparent_background=false
+viewport/transparent_background=true

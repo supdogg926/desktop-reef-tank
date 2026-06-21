@@ -10,6 +10,9 @@ const C_NAV_INACTIVE = Color8(150, 150, 150)
 const C_BTN_ADOPT = Color8(76, 175, 80)
 const ANEMONE_SWAY_RADIUS := 4.0
 const ANEMONE_SWAY_SPEED := 10.0
+const HEADER_RATIO := 0.12
+const FLOOR_RATIO := 0.20
+const WALL_INSET_RATIO := 0.08
 
 var tank_rect: Control
 var codex_panel: PanelContainer
@@ -21,11 +24,16 @@ func _ready() -> void:
 	SaveManager.load_game()
 	_position_overlay_window()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	print(">>> [DEBUG] window.size=", get_window().size, " self.size=", size)
 	_build_top_bar()
 	_build_nav_bar()
 	_build_tank_view()
+	print(">>> [DEBUG] tank_rect.size after build=", tank_rect.size)
 	_build_codex_panel()
 	_spawn_saved_creatures()
+	print(">>> [DEBUG] owned_creatures=", GameManager.owned_creatures if GameManager else "none")
 	if GameManager:
 		GameManager.creature_adopted.connect(_on_creature_adopted)
 
@@ -33,16 +41,18 @@ func _ready() -> void:
 func _on_tank_resized(sand: Polygon2D) -> void:
 	var w = tank_rect.size.x
 	var h = tank_rect.size.y
-	var top_y = h - 60
-	var bot_y = h
+	var floor_h = h * FLOOR_RATIO
+	var wall_inset = w * WALL_INSET_RATIO
+	var top_y = h - floor_h
 	sand.polygon = PackedVector2Array(
 		[
-			Vector2(0, top_y + 10),
-			Vector2(w, top_y - 10),
-			Vector2(w, bot_y),
-			Vector2(0, bot_y),
+			Vector2(wall_inset, top_y),
+			Vector2(w - wall_inset, top_y),
+			Vector2(w, h),
+			Vector2(0, h),
 		]
 	)
+	print(">>> [DEBUG] sand polygon recalculated, tank size=", tank_rect.size)
 
 
 func _process(_delta: float) -> void:
@@ -55,9 +65,11 @@ func _process(_delta: float) -> void:
 
 
 func _build_top_bar() -> void:
+	var header_h := int(round(get_window().size.y * HEADER_RATIO))
+	var top_h := int(round(header_h * 0.6))
 	var bar = ColorRect.new()
 	bar.color = C_BAR_BG
-	bar.custom_minimum_size = Vector2(0, 48)
+	bar.custom_minimum_size = Vector2(0, top_h)
 	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	add_child(bar)
 
@@ -99,17 +111,20 @@ func _build_top_bar() -> void:
 
 
 func _build_nav_bar() -> void:
+	var header_h := int(round(get_window().size.y * HEADER_RATIO))
+	var top_h := int(round(header_h * 0.6))
+	var nav_h := int(round(header_h * 0.4))
 	var bar = ColorRect.new()
 	bar.color = Color(C_BAR_BG, 0.3)
-	bar.custom_minimum_size = Vector2(0, 28)
+	bar.custom_minimum_size = Vector2(0, nav_h)
 	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	bar.position = Vector2(0, 48)
+	bar.position = Vector2(0, top_h)
 	add_child(bar)
 
 	var hbox = HBoxContainer.new()
 	hbox.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	hbox.position = Vector2(0, 48)
-	hbox.custom_minimum_size = Vector2(0, 36)
+	hbox.position = Vector2(0, top_h)
+	hbox.custom_minimum_size = Vector2(0, nav_h)
 	hbox.add_theme_constant_override("separation", 24)
 	add_child(hbox)
 
@@ -148,12 +163,13 @@ func _build_nav_bar() -> void:
 
 
 func _build_tank_view() -> void:
+	var header_h := int(round(get_window().size.y * HEADER_RATIO))
 	tank_rect = Control.new()
 	tank_rect.anchor_left = 0.0
 	tank_rect.anchor_top = 0.0
 	tank_rect.anchor_right = 1.0
 	tank_rect.anchor_bottom = 1.0
-	tank_rect.offset_top = 84
+	tank_rect.offset_top = header_h
 	tank_rect.clip_contents = true
 	add_child(tank_rect)
 
@@ -163,12 +179,13 @@ func _build_tank_view() -> void:
 	water.set_anchors_preset(Control.PRESET_FULL_RECT)
 	tank_rect.add_child(water)
 
-	# 沙地（底部梯形）
+	# 沙地（底部对称梯形，两侧收边）
 	var sand = Polygon2D.new()
-	sand.set_meta("needs_resize", true)
 	sand.color = C_SAND
 	tank_rect.add_child(sand)
 	tank_rect.resized.connect(_on_tank_resized.bind(sand))
+	_on_tank_resized(sand)
+	print(">>> [DEBUG] sand.polygon after manual call=", sand.polygon)
 
 
 # ── 图鉴面板 ────────────────────────────────────────────────────
@@ -296,18 +313,26 @@ func _spawn_creature(instance_id: String, species_id: String) -> void:
 func _place_creature(rtl: RichTextLabel, data: Dictionary) -> void:
 	var tank_w = tank_rect.size.x
 	var tank_h = tank_rect.size.y
+	var sand_top_y = tank_h * (1.0 - FLOOR_RATIO)
+	print(
+		">>> [DEBUG] _place_creature ",
+		data.get("name_cn", "?"),
+		" tank size=",
+		tank_rect.size,
+		" sand_top_y=",
+		sand_top_y,
+	)
 	var cx = tank_w / 2.0
-	var sand_y = tank_h - 60
 
 	if data.type == "anemone":
-		var anchor := Vector2(cx - 60, sand_y - 80)
+		var anchor := Vector2(cx - 60, sand_top_y - 80)
 		rtl.position = anchor
 		rtl.set_meta("fixed", true)
 		rtl.set_meta("anchor_pos", anchor)
 		rtl.set_meta("target_pos", anchor)
 		rtl.set_meta("speed", ANEMONE_SWAY_SPEED)
 	else:
-		rtl.position = Vector2(randf_range(60, tank_w - 100), randf_range(100, sand_y - 60))
+		rtl.position = Vector2(randf_range(60, tank_w - 100), randf_range(100, sand_top_y - 60))
 		rtl.set_meta("fixed", false)
 		rtl.set_meta("target_pos", rtl.position)
 		rtl.set_meta("speed", randf_range(20.0, 50.0))
@@ -336,8 +361,8 @@ func _animate_fish(delta: float) -> void:
 			if dist < 4.0:
 				var tank_w = tank_rect.size.x
 				var tank_h = tank_rect.size.y
-				var sand_y = tank_h - 60
-				target = Vector2(randf_range(40, tank_w - 80), randf_range(80, sand_y - 40))
+				var sand_top_y = tank_h * (1.0 - FLOOR_RATIO)
+				target = Vector2(randf_range(40, tank_w - 80), randf_range(80, sand_top_y - 40))
 				node.set_meta("target_pos", target)
 				node.set_meta("speed", randf_range(20.0, 50.0))
 			else:
