@@ -19,7 +19,6 @@ var creature_nodes: Dictionary = {}  # instance_id → Control
 
 func _ready() -> void:
 	SaveManager.load_game()
-	get_tree().get_root().set_transparent_background(true)
 	_position_overlay_window()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_build_top_bar()
@@ -49,7 +48,6 @@ func _on_tank_resized(sand: Polygon2D) -> void:
 func _process(_delta: float) -> void:
 	if time_label:
 		time_label.text = Time.get_datetime_string_from_system()
-	_update_passthrough_region()
 	_animate_fish(_delta)
 
 
@@ -362,20 +360,6 @@ func _position_overlay_window() -> void:
 	window.always_on_top = true
 	window.size = Vector2i(rect.size)
 	window.position = Vector2i(rect.position)
-
-
-func _update_passthrough_region() -> void:
-	# 信息栏+导航栏所在的节点（约 0-84px 高度区域）作为唯一可交互控制条
-	var control_rect := Rect2(Vector2(0, 0), Vector2(get_viewport_rect().size.x, 84))
-	var polygon := PackedVector2Array(
-		[
-			control_rect.position,
-			Vector2(control_rect.end.x, control_rect.position.y),
-			control_rect.end,
-			Vector2(control_rect.position.x, control_rect.end.y),
-		]
-	)
-	DisplayServer.window_set_mouse_passthrough(polygon)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
