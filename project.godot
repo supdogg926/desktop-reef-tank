@@ -10,6 +10,11 @@ config/version="0.1.0"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7")
 
+[autoload]
+
+GameManager="*res://scripts/GameManager.gd"
+SaveManager="*res://scripts/SaveManager.gd"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
