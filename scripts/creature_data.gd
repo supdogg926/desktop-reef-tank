@@ -2,7 +2,8 @@ class_name CreatureData
 extends RefCounted
 
 const SPECIES := {
-	"tomato_clown_m": {
+	"tomato_clown_m":
+	{
 		"name_cn": "番茄小丑",
 		"latin": "Amphiprion frenatus",
 		"type": "fish",
@@ -13,7 +14,8 @@ const SPECIES := {
 		"fin_color": Color8(40, 40, 40),
 		"font_size": 24,
 	},
-	"tomato_clown_f": {
+	"tomato_clown_f":
+	{
 		"name_cn": "番茄小丑",
 		"latin": "Amphiprion frenatus",
 		"type": "fish",
@@ -24,7 +26,8 @@ const SPECIES := {
 		"fin_color": Color8(20, 20, 20),
 		"font_size": 30,
 	},
-	"rainbow_carpet_anemone": {
+	"rainbow_carpet_anemone":
+	{
 		"name_cn": "彩虹地毯海葵",
 		"latin": null,
 		"type": "anemone",

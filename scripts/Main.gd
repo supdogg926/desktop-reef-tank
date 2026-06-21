@@ -32,12 +32,14 @@ func _on_tank_resized(sand: Polygon2D) -> void:
 	var h = tank_rect.size.y
 	var top_y = h - 60
 	var bot_y = h
-	sand.polygon = PackedVector2Array([
-		Vector2(0, top_y + 10),
-		Vector2(w, top_y - 10),
-		Vector2(w, bot_y),
-		Vector2(0, bot_y),
-	])
+	sand.polygon = PackedVector2Array(
+		[
+			Vector2(0, top_y + 10),
+			Vector2(w, top_y - 10),
+			Vector2(w, bot_y),
+			Vector2(0, bot_y),
+		]
+	)
 
 
 func _process(_delta: float) -> void:
@@ -47,6 +49,7 @@ func _process(_delta: float) -> void:
 
 
 # ── 顶部信息栏 ─────────────────────────────────────────────────
+
 
 func _build_top_bar() -> void:
 	var bar = ColorRect.new()
@@ -90,6 +93,7 @@ func _build_top_bar() -> void:
 
 
 # ── 导航栏 ─────────────────────────────────────────────────────
+
 
 func _build_nav_bar() -> void:
 	var bar = ColorRect.new()
@@ -139,6 +143,7 @@ func _build_nav_bar() -> void:
 
 # ── 鱼缸主视图 ──────────────────────────────────────────────────
 
+
 func _build_tank_view() -> void:
 	tank_rect = Control.new()
 	tank_rect.anchor_left = 0.0
@@ -164,6 +169,7 @@ func _build_tank_view() -> void:
 
 
 # ── 图鉴面板 ────────────────────────────────────────────────────
+
 
 func _build_codex_panel() -> void:
 	codex_panel = PanelContainer.new()
@@ -210,7 +216,9 @@ func _build_codex_panel() -> void:
 		if data.type == "fish" and data.gender != null:
 			var gender_symbol = "♂" if data.gender == "m" else "♀"
 			var gender_color = _color_to_hex(data.main_color)
-			name_text += " [color=#FFFFFF]丨[/color][color=#%s]%s[/color]" % [gender_color, gender_symbol]
+			name_text += (
+				" [color=#FFFFFF]丨[/color][color=#%s]%s[/color]" % [gender_color, gender_symbol]
+			)
 		var name_rtl = RichTextLabel.new()
 		name_rtl.bbcode_enabled = true
 		name_rtl.text = name_text
@@ -243,6 +251,7 @@ func _on_codex_tab_clicked() -> void:
 
 # ── 生物渲染 ────────────────────────────────────────────────────
 
+
 func _on_creature_adopted(instance_id: String, species_id: String) -> void:
 	_spawn_creature(instance_id, species_id)
 
@@ -270,7 +279,9 @@ func _spawn_creature(instance_id: String, species_id: String) -> void:
 	var name_text = "[color=#%s]%s[/color]" % [color_hex, data.name_cn]
 	if data.type == "fish" and data.gender != null:
 		var gs = "♂" if data.gender == "m" else "♀"
-		name_text += " [color=#FFFFFF]丨[/color][color=#%s]%s[/color]" % [_color_to_hex(data.main_color), gs]
+		name_text += (
+			" [color=#FFFFFF]丨[/color][color=#%s]%s[/color]" % [_color_to_hex(data.main_color), gs]
+		)
 	rtl.text = name_text
 
 	# 初始位置 (use deferred to ensure tank_rect.size is available)
@@ -316,10 +327,14 @@ func _animate_fish(delta: float) -> void:
 
 
 func _color_to_hex(c: Color) -> String:
-	return "%02X%02X%02X" % [clampi(int(c.r8), 0, 255), clampi(int(c.g8), 0, 255), clampi(int(c.b8), 0, 255)]
+	return (
+		"%02X%02X%02X"
+		% [clampi(int(c.r8), 0, 255), clampi(int(c.g8), 0, 255), clampi(int(c.b8), 0, 255)]
+	)
 
 
 # ── 帮助函数 ────────────────────────────────────────────────────
+
 
 func _make_label(text: String, font_size: int, color: Color) -> Label:
 	var lbl = Label.new()
