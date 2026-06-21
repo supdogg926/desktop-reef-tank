@@ -1,0 +1,19 @@
+name: GDScript Lint
+
+on: [push, pull_request]
+
+jobs:
+  static-checks:
+    name: gdformat & gdlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install gdtoolkit
+        run: pip install 'gdtoolkit==4.*'
+      - name: gdformat --check
+        run: gdformat --check scripts/ tests/
+      - name: gdlint
+        run: gdlint scripts/ tests/
