@@ -382,6 +382,9 @@ func _color_to_hex(c: Color) -> String:
 
 
 func _position_overlay_window() -> void:
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_TRANSPARENT, true)
+	get_tree().get_root().set_transparent_background(true)
+	RenderingServer.set_default_clear_color(Color(0, 0, 0, 0))
 	var screen_id := DisplayServer.window_get_current_screen()
 	var screen_size := DisplayServer.screen_get_size(screen_id)
 	var rect := OverlayLayout.calculate_overlay_rect(screen_size)
